@@ -24,20 +24,18 @@ import ShareIcon from "@material-ui/icons/Share";
 import FileCopyIcon from "@material-ui/icons/FileCopy";
 import useWeb3Connect from "../utils/useWeb3Connect";
 import {
-  open3Box,
-  logout3Box,
-  getSpace,
-  getBox,
+  openIDX,
+  logoutIDX,
+  getIDX,
   isFetching
-} from "../utils/3BoxManager";
+} from "../utils/IDXManager";
 
 import moment from "moment";
 
-import Box from "3box";
 import ProfileHover from "profile-hover";
 import { getDocumentInfo, saveDocument } from "../utils/Documents3BoxSpace";
 
-const STORAGE_3BOX_DOCUMENT = "eth.build.documentTitle3Box";
+const STORAGE_IDX_DOCUMENT = "eth.build.documentTitleIDX";
 
 var codec = require("json-url")("lzw");
 var QRCode = require("qrcode.react");
@@ -116,34 +114,29 @@ function SaveDialog(props) {
     //     : "n/a"
     // });
 
-    let space = getSpace();
-    let box = getBox();
+    let idx = getIDX();
     let fetching = isFetching();
 
     if (
       web3Connect.address &&
-      Box.isLoggedIn(web3Connect.address) &&
-      !box &&
-      !space &&
+      !idx &&
       !fetching
     ) {
-      console.log("OPENING 3BOX from useEffect");
-      open3Box(web3Connect.address, web3Connect.provider, console.log);
+      console.log("OPENING IDX from useEffect");
+      openIDX(web3Connect.address, web3Connect.provider, console.log);
     }
   });
 
   React.useEffect(() => {
-    let space = getSpace();
-    let box = getBox();
+    let idx = getIDX();
     let fetching = isFetching();
 
     if (
-      saveType === "3BOX_SCREEN" &&
-      box !== null &&
-      space !== null &&
+      saveType === "IDX_SCREEN" &&
+      idx !== null &&
       !fetching
     ) {
-      changeTo3BoxSavePage();
+      changeToIDXSavePage();
     }
   }, [saveType]);
   let link =
@@ -161,13 +154,13 @@ function SaveDialog(props) {
       </div>
     );
   }
-  const changeTo3BoxSavePage = () => {
-    let savedTitle = localStorage.getItem(STORAGE_3BOX_DOCUMENT);
+  const changeToIDXSavePage = () => {
+    let savedTitle = localStorage.getItem(STORAGE_IDX_DOCUMENT);
     setDocumentTitle(savedTitle ? savedTitle : "");
     if (savedTitle) {
       updateDocumentInfo(savedTitle);
     }
-    setSaveType("3BOX_SAVE");
+    setSaveType("IDX_SAVE");
   };
   const download = async () => {
     console.log("SAVING COMPRESSED", compressed);
@@ -225,43 +218,43 @@ function SaveDialog(props) {
     //setOpenSaveDialog(false);
   };
 
-  const connectTo3Box = async () => {
+  const connectToIDX = async () => {
     try {
-      let { space } = await open3Box(
+      let { idx } = await openIDX(
         web3Connect.address,
         web3Connect.provider,
         setThreeBoxStatus
       );
 
-      let savedTitle = localStorage.getItem(STORAGE_3BOX_DOCUMENT);
+      let savedTitle = localStorage.getItem(STORAGE_IDX_DOCUMENT);
       setDocumentTitle(savedTitle ? savedTitle : "");
 
-      let documentInfo = await getDocumentInfo(space, savedTitle);
+      let documentInfo = await getDocumentInfo(idx, savedTitle);
       setCurrentDocumentInfo(documentInfo.metadata ? documentInfo : null);
 
-      setSaveType("3BOX_SAVE");
+      setSaveType("IDX_SAVE");
     } catch (error) {
       setThreeBoxStatus(error);
     }
   };
 
   const updateDocumentInfo = async fileName => {
-    let space = getSpace();
-    if (space) {
-      let documentInfo = await getDocumentInfo(space, fileName);
+    let idx = getIDX();
+    if (idx) {
+      let documentInfo = await getDocumentInfo(idx, fileName);
       console.log("Updated DocumentInfo: ", documentInfo);
       setCurrentDocumentInfo(documentInfo.metadata ? documentInfo : null);
     } else {
-      console.log("NO 3BOX SPACE");
+      console.log("NO IDX SPACE");
     }
   };
 
   const logout = async () => {
-    await logout3Box();
+    await logoutIDX();
     await web3Connect.resetApp();
     setThreeBoxStatus(null);
     setThreeBoxConnectionStep(0);
-    setSaveType("3BOX_SCREEN");
+    setSaveType("IDX_SCREEN");
   };
 
   const handleTitle = e => {
@@ -361,41 +354,40 @@ function SaveDialog(props) {
             </Grid>
 
             <Grid item style={{ width: 220 }}>
-              <Tooltip title="Save to your 3Box space">
+              <Tooltip title="Save to your IDX space">
                 <Button
                   variant="contained"
                   className={classes.button}
                   color="primary"
                   onClick={() => {
-                    setSaveType("3BOX_SCREEN");
+                    setSaveType("IDX_SCREEN");
                     if (connected && threeBoxConnectionStep === 0) {
                       setThreeBoxConnectionStep(1);
                     }
                     let fetching = isFetching();
                     if (fetching) {
                       setThreeBoxStatus(
-                        "Connection to 3Box already in progress"
+                        "Connection to IDX already in progress"
                       );
                       let checkCompletion = () => {
-                        let fetching3Box = isFetching();
-                        if (!fetching3Box) {
-                          changeTo3BoxSavePage();
+                        let fetchingIDX = isFetching();
+                        if (!fetchingIDX) {
+                          changeToIDXSavePage();
                         } else {
                           setTimeout(checkCompletion, 1000);
                         }
                       };
                       setTimeout(checkCompletion, 1000);
                     }
-                    let box = getBox();
-                    let space = getSpace();
-                    if (box && space) {
-                      console.log("3BOX is already open and available");
-                      changeTo3BoxSavePage();
+                    let idx = getIDX();
+                    if (idx) {
+                      console.log("IDX is already open and available");
+                      changeToIDXSavePage();
                     }
                   }}
                   startIcon={<ThreeBoxIcon />}
                 >
-                  Save to 3Box
+                  Save to IDX
                 </Button>
               </Tooltip>
             </Grid>
@@ -495,7 +487,7 @@ function SaveDialog(props) {
         </>
       )}
 
-      {saveType === "3BOX_SCREEN" && (
+      {saveType === "IDX_SCREEN" && (
         <>
           <div
             style={{
@@ -509,7 +501,7 @@ function SaveDialog(props) {
                 <StepLabel>Sign in with your wallet</StepLabel>
               </Step>
               <Step>
-                <StepLabel>Connect to 3Box</StepLabel>
+                <StepLabel>Connect to IDX</StepLabel>
               </Step>
             </Stepper>
 
@@ -542,7 +534,7 @@ function SaveDialog(props) {
                   <Button
                     variant="contained"
                     color="primary"
-                    onClick={connectTo3Box}
+                    onClick={connectToIDX}
                     style={{ margin: 8 }}
                     disabled={isFetching()}
                   >
@@ -572,10 +564,10 @@ function SaveDialog(props) {
           </div>
         </>
       )}
-      {saveType === "3BOX_SAVE" && (
+      {saveType === "IDX_SAVE" && (
         <>
           <div style={{ padding: 32, textAlign: "center" }}>
-            <Typography variant="button">Save to 3Box</Typography>
+            <Typography variant="button">Save to IDX</Typography>
             <Typography
               variant="caption"
               style={{
@@ -586,7 +578,7 @@ function SaveDialog(props) {
               }}
               display="block"
             >
-              You can save your eth.build file directly to your 3Box private
+              You can save your eth.build file directly to your IDX private
               space. This means that it is saved encrypted on IPFS and only you
               can access to it.
             </Typography>
@@ -626,15 +618,15 @@ function SaveDialog(props) {
               color="primary"
               onClick={async () => {
                 setSaving(true);
-                let space = getSpace();
+                let idx = getIDX();
                 await saveDocument(
-                  space,
+                  idx,
                   documentTitle,
                   compressed,
                   screenshot
                 );
                 updateDocumentInfo(documentTitle);
-                localStorage.setItem(STORAGE_3BOX_DOCUMENT, documentTitle);
+                localStorage.setItem(STORAGE_IDX_DOCUMENT, documentTitle);
                 setSaving(false);
               }}
               style={{ margin: 16 }}
