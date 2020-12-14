@@ -76,6 +76,7 @@ function LoadDialog(props) {
     //     : "n/a"
     // });
 
+<<<<<<< HEAD
     let idx = getIDX();
     let fetching = isFetching();
 
@@ -83,6 +84,19 @@ function LoadDialog(props) {
       console.log("OPENING IDX from useEffect");
       openIDX(web3Connect.address, web3Connect.provider, console.log);
     }
+=======
+    // let idx = getIDX();
+    // let fetching = isFetching();
+
+    // if (
+    //   web3Connect.address &&
+    //   !idx &&
+    //   !fetching
+    // ) {
+    //   console.log("OPENING IDX from useEffect");
+    //   openIDX(web3Connect.address, web3Connect.provider, console.log);
+    // }
+>>>>>>> 912211574cc005c170d6b2762e523a106784a323
   });
 
   React.useEffect(() => {
@@ -216,6 +230,7 @@ function LoadDialog(props) {
         }}
         open={openLoadDialog}
         maxWidth="md"
+        style={{zIndex: 99}}
       >
         {/* <DialogTitle id="save-dialog" style={{ textAlign: "center" }}>
         <Icon style={{ verticalAlign: "middle" }}>save</Icon>
