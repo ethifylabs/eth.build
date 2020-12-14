@@ -110,7 +110,7 @@ function LoadDialog(props) {
         web3Connect.provider,
         setThreeBoxStatus
       );
-      setDocuments(await loadDocuments(idx));
+      setDocuments(await getSavedDocuments());
       setLoadType("IDX_LOAD");
     } catch (error) {
       setThreeBoxStatus(error);

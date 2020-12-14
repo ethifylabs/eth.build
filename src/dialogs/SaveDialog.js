@@ -227,8 +227,8 @@ function SaveDialog(props) {
       let savedTitle = localStorage.getItem(STORAGE_IDX_DOCUMENT);
       setDocumentTitle(savedTitle ? savedTitle : "");
 
-      let documentInfo = await getDocumentInfo(idx, savedTitle);
-      setCurrentDocumentInfo(documentInfo.metadata ? documentInfo : null);
+      // let documentInfo = await getDocumentInfo(idx, savedTitle);
+      // setCurrentDocumentInfo(documentInfo.metadata ? documentInfo : null);
 
       setSaveType("IDX_SAVE");
     } catch (error) {
