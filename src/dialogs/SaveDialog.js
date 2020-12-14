@@ -17,7 +17,7 @@ import {
   Tooltip,
   // Switch,
   // FormControlLabel,
-  Link
+  Link,
 } from "@material-ui/core";
 import GetAppIcon from "@material-ui/icons/GetApp";
 import ShareIcon from "@material-ui/icons/Share";
@@ -27,7 +27,9 @@ import {
   openIDX,
   logoutIDX,
   getIDX,
-  isFetching
+  isFetching,
+  generatePrivateKey,
+  saveDocumentIDX,
 } from "../utils/IDXManager";
 
 import moment from "moment";
@@ -43,11 +45,11 @@ const axios = require("axios");
 
 const useStyles = makeStyles({
   button: {
-    width: 200
-  }
+    width: 200,
+  },
 });
 
-const ThreeBoxIcon = props => {
+const ThreeBoxIcon = (props) => {
   return (
     <SvgIcon {...props} viewBox="0 0 290 289">
       <path
@@ -64,7 +66,7 @@ function SaveDialog(props) {
     setOpenSaveDialog,
     openSaveDialog,
     dynamicWidth,
-    screenshot
+    screenshot,
   } = props;
 
   const classes = useStyles();
@@ -103,7 +105,7 @@ function SaveDialog(props) {
 
   React.useEffect(() => {
     if (liteGraph) {
-      codec.compress(liteGraph.serialize()).then(data => {
+      codec.compress(liteGraph.serialize()).then((data) => {
         setCompressed(data);
       });
     }
@@ -117,11 +119,7 @@ function SaveDialog(props) {
     let idx = getIDX();
     let fetching = isFetching();
 
-    if (
-      web3Connect.address &&
-      !idx &&
-      !fetching
-    ) {
+    if (web3Connect.address && !idx && !fetching) {
       console.log("OPENING IDX from useEffect");
       openIDX(web3Connect.address, web3Connect.provider, console.log);
     }
@@ -131,11 +129,7 @@ function SaveDialog(props) {
     let idx = getIDX();
     let fetching = isFetching();
 
-    if (
-      saveType === "IDX_SCREEN" &&
-      idx !== null &&
-      !fetching
-    ) {
+    if (saveType === "IDX_SCREEN" && idx !== null && !fetching) {
       changeToIDXSavePage();
     }
   }, [saveType]);
@@ -157,9 +151,9 @@ function SaveDialog(props) {
   const changeToIDXSavePage = () => {
     let savedTitle = localStorage.getItem(STORAGE_IDX_DOCUMENT);
     setDocumentTitle(savedTitle ? savedTitle : "");
-    if (savedTitle) {
-      updateDocumentInfo(savedTitle);
-    }
+    // if (savedTitle) {
+    //   updateDocumentInfo(savedTitle);
+    // }
     setSaveType("IDX_SAVE");
   };
   const download = async () => {
@@ -191,7 +185,7 @@ function SaveDialog(props) {
       document.body.appendChild(element);
       element.click();
       document.body.removeChild(element);
-      setTimeout(function() {
+      setTimeout(function () {
         URL.revokeObjectURL(url);
       }, 1000 * 60);
       handleClose();
@@ -202,7 +196,7 @@ function SaveDialog(props) {
     console.log("share", compressed);
     setSaveType("SHARE");
     let result = await axios.post("https://network.eth.build:44386/build", {
-      compressed
+      compressed,
     });
 
     console.log("share result", result);
@@ -238,7 +232,7 @@ function SaveDialog(props) {
     }
   };
 
-  const updateDocumentInfo = async fileName => {
+  const updateDocumentInfo = async (fileName) => {
     let idx = getIDX();
     if (idx) {
       let documentInfo = await getDocumentInfo(idx, fileName);
@@ -257,18 +251,18 @@ function SaveDialog(props) {
     setSaveType("IDX_SCREEN");
   };
 
-  const handleTitle = e => {
+  const handleTitle = (e) => {
     let title = e.target.value;
     setDocumentTitle(title);
-    if (updateTimer) {
-      clearTimeout(updateTimer);
-    }
-    setUpdateTimer(
-      setTimeout(() => {
-        console.log("Running timer for ", title);
-        updateDocumentInfo(title);
-      }, 500)
-    );
+    // if (updateTimer) {
+    //   clearTimeout(updateTimer);
+    // }
+    // setUpdateTimer(
+    //   setTimeout(() => {
+    //     console.log("Running timer for ", title);
+    //     updateDocumentInfo(title);
+    //   }, 500)
+    // );
   };
 
   return (
@@ -359,7 +353,7 @@ function SaveDialog(props) {
                   variant="contained"
                   className={classes.button}
                   color="primary"
-                  onClick={() => {
+                  onClick={async () => {
                     setSaveType("IDX_SCREEN");
                     if (connected && threeBoxConnectionStep === 0) {
                       setThreeBoxConnectionStep(1);
@@ -416,7 +410,7 @@ function SaveDialog(props) {
                   width: "100%",
                   textAlign: "center",
                   fontSize: 12,
-                  color: "#000000"
+                  color: "#000000",
                 }}
               >
                 <a href={"https://eth.build/build#" + shared}>
@@ -430,7 +424,7 @@ function SaveDialog(props) {
                     style={{
                       border: "1px solid #dddddd",
                       padding: 20,
-                      margin: 5
+                      margin: 5,
                     }}
                   />
                 </div>
@@ -444,7 +438,7 @@ function SaveDialog(props) {
                     display: "block",
                     textAlign: "center",
                     margin: "auto",
-                    marginBottom: 16
+                    marginBottom: 16,
                   }}
                 />
                 <Typography variant="overline" display="block" gutterBottom>
@@ -465,7 +459,7 @@ function SaveDialog(props) {
                 border: "1px solid #dddddd",
                 padding: 5,
                 margin: 5,
-                width: dynamicWidth
+                width: dynamicWidth,
               }}
               value={link}
             ></input>
@@ -493,7 +487,7 @@ function SaveDialog(props) {
             style={{
               justifyContent: "center",
               padding: 32,
-              textAlign: "center"
+              textAlign: "center",
             }}
           >
             <Stepper alternativeLabel activeStep={threeBoxConnectionStep}>
@@ -556,7 +550,7 @@ function SaveDialog(props) {
               onClick={logout}
               style={{
                 display: "block",
-                margin: "auto"
+                margin: "auto",
               }}
             >
               Logout
@@ -574,7 +568,7 @@ function SaveDialog(props) {
                 marginTop: 16,
                 marginBottom: 16,
                 maxWidth: 300,
-                textAlign: "justify"
+                textAlign: "justify",
               }}
               display="block"
             >
@@ -618,14 +612,12 @@ function SaveDialog(props) {
               color="primary"
               onClick={async () => {
                 setSaving(true);
-                let idx = getIDX();
-                await saveDocument(
-                  idx,
-                  documentTitle,
-                  compressed,
-                  screenshot
+                await generatePrivateKey(
+                  web3Connect.address,
+                  web3Connect.provider
                 );
-                updateDocumentInfo(documentTitle);
+                await saveDocumentIDX(documentTitle, compressed, screenshot);
+                // updateDocumentInfo(documentTitle);
                 localStorage.setItem(STORAGE_IDX_DOCUMENT, documentTitle);
                 setSaving(false);
               }}
@@ -644,7 +636,7 @@ function SaveDialog(props) {
               onClick={logout}
               style={{
                 display: "block",
-                margin: "auto"
+                margin: "auto",
               }}
             >
               Logout

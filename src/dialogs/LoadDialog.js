@@ -14,7 +14,9 @@ import {
   openIDX,
   logoutIDX,
   getIDX,
-  isFetching
+  isFetching,
+  generatePrivateKey,
+  getSavedDocuments,
 } from "../utils/IDXManager";
 
 import ProfileHover from "profile-hover";
@@ -27,11 +29,11 @@ var codec = require("json-url")("lzw");
 
 const useStyles = makeStyles({
   button: {
-    width: 200
-  }
+    width: 200,
+  },
 });
 
-const ThreeBoxIcon = props => {
+const ThreeBoxIcon = (props) => {
   return (
     <SvgIcon {...props} viewBox="0 0 290 289">
       <path
@@ -77,11 +79,7 @@ function LoadDialog(props) {
     let idx = getIDX();
     let fetching = isFetching();
 
-    if (
-      web3Connect.address &&
-      !idx &&
-      !fetching
-    ) {
+    if (web3Connect.address && !idx && !fetching) {
       console.log("OPENING IDX from useEffect");
       openIDX(web3Connect.address, web3Connect.provider, console.log);
     }
@@ -91,11 +89,7 @@ function LoadDialog(props) {
     let idx = getIDX();
     let fetching = isFetching();
 
-    if (
-      loadType === "IDX_SCREEN" &&
-      idx !== null &&
-      !fetching
-    ) {
+    if (loadType === "IDX_SCREEN" && idx !== null && !fetching) {
       changeToIDXLoadPage();
     }
   }, [loadType]);
@@ -103,7 +97,7 @@ function LoadDialog(props) {
   const changeToIDXLoadPage = async () => {
     let idx = getIDX();
 
-    setDocuments(await loadDocuments(idx));
+    setDocuments(await getSavedDocuments());
     setLoadType("IDX_LOAD");
   };
 
@@ -134,7 +128,7 @@ function LoadDialog(props) {
     handleClose();
   };
 
-  const getJsonFromCompressed = compressedString =>
+  const getJsonFromCompressed = (compressedString) =>
     new Promise((resolve, reject) => {
       let loc = compressedString.indexOf("<string>");
       if (loc > 0) {
@@ -147,7 +141,7 @@ function LoadDialog(props) {
         );
       }
       console.log("decompress:", compressedString);
-      codec.decompress(compressedString).then(json => {
+      codec.decompress(compressedString).then((json) => {
         console.log("configure graph with:", json);
         if (json) {
           resolve(json);
@@ -155,9 +149,9 @@ function LoadDialog(props) {
       });
     });
 
-  const openFile = async file => {
+  const openFile = async (file) => {
     console.log("Opening FILE: ", file);
-    let compressedString = file.data;
+    let compressedString = file.content;
     let json = await getJsonFromCompressed(compressedString);
 
     localStorage.setItem("litegraph", JSON.stringify(json));
@@ -175,17 +169,17 @@ function LoadDialog(props) {
             border: "1px solid #777777",
             color: live ? "#00ff00" : "#0000ff",
             padding: 5,
-            cursor: "pointer"
+            cursor: "pointer",
           }}
         >
           <input
             id="loadjsonfile"
             type="file"
             name="file"
-            onChange={e => {
+            onChange={(e) => {
               console.log("FILE", e.target.files[0]);
               var reader = new FileReader();
-              reader.onload = event => {
+              reader.onload = (event) => {
                 let compressedString = event.target.result;
                 //console.log("compressedString",compressedString)
                 let loc = compressedString.indexOf("<string>");
@@ -199,7 +193,7 @@ function LoadDialog(props) {
                   );
                 }
                 console.log("decompress:", compressedString);
-                codec.decompress(compressedString).then(json => {
+                codec.decompress(compressedString).then((json) => {
                   console.log("configure graph with:", json);
                   if (json) {
                     localStorage.setItem("litegraph", JSON.stringify(json));
@@ -257,7 +251,11 @@ function LoadDialog(props) {
                     variant="contained"
                     className={classes.button}
                     color="primary"
-                    onClick={() => {
+                    onClick={async () => {
+                      await generatePrivateKey(
+                        web3Connect.address,
+                        web3Connect.provider
+                      );
                       setLoadType("IDX_SCREEN");
                       if (connected && threeBoxConnectionStep === 0) {
                         setThreeBoxConnectionStep(1);
@@ -300,7 +298,7 @@ function LoadDialog(props) {
               style={{
                 justifyContent: "center",
                 padding: 32,
-                textAlign: "center"
+                textAlign: "center",
               }}
             >
               <Stepper alternativeLabel activeStep={threeBoxConnectionStep}>
@@ -363,7 +361,7 @@ function LoadDialog(props) {
                 onClick={logout}
                 style={{
                   display: "block",
-                  margin: "auto"
+                  margin: "auto",
                 }}
               >
                 Logout
@@ -439,7 +437,7 @@ function LoadDialog(props) {
                 onClick={logout}
                 style={{
                   display: "block",
-                  margin: "auto"
+                  margin: "auto",
                 }}
               >
                 Logout
