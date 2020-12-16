@@ -137,8 +137,8 @@ function LoadDialog(props) {
   const changeTo3BoxLoadPage = async () => {
     let space = getSpace();
 
-    setDocuments(await loadDocuments(space));
-    setLoadType("3BOX_LOAD");
+    setDocuments(await getSavedDocuments());
+    setLoadType("IDX_LOAD");
   };
 
   const connectToIDX = async () => {
@@ -157,13 +157,13 @@ function LoadDialog(props) {
 
   const connectTo3Box = async () => {
     try {
-      let { space } = await open3Box(
+      let { idx } = await openIDX(
         web3Connect.address,
         web3Connect.provider,
         setThreeBoxStatus
       );
-      setDocuments(await loadDocuments(space));
-      setLoadType("3BOX_LOAD");
+      setDocuments(await getSavedDocuments());
+      setLoadType("IDX_LOAD");
     } catch (error) {
       setThreeBoxStatus(error);
     }
@@ -182,7 +182,7 @@ function LoadDialog(props) {
     await web3Connect.resetApp();
     setThreeBoxStatus(null);
     setThreeBoxConnectionStep(0);
-    setLoadType("3BOX_SCREEN");
+    setLoadType("IDX_SCREEN");
   };
 
   const loadFromFile = async () => {
@@ -231,7 +231,7 @@ function LoadDialog(props) {
     localStorage.setItem("litegraph", JSON.stringify(json));
     liteGraph.configure(json);
 
-    localStorage.setItem(STORAGE_3BOX_DOCUMENT, file.fileName);
+    localStorage.setItem(STORAGE_IDX_DOCUMENT, file.fileName);
     handleClose();
   };
 
@@ -321,7 +321,7 @@ function LoadDialog(props) {
               </Grid>
 
               <Grid item style={{ width: 220 }}>
-                <Tooltip title="Load from your 3Box space">
+                <Tooltip title="Load from your IDX space">
                   <Button
                     variant="contained"
                     className={classes.button}
@@ -334,7 +334,7 @@ function LoadDialog(props) {
                       let fetching = isIDXFetching();
                       if (fetching) {
                         setThreeBoxStatus(
-                          "Connection to 3Box already in progress"
+                          "Connection to IDX already in progress"
                         );
                         let checkCompletion = () => {
                           let fetchingIDX = isIDXFetching();
@@ -346,17 +346,16 @@ function LoadDialog(props) {
                         };
                         setTimeout(checkCompletion, 1000);
                       }
-                      let box = getBox();
-                      let space = getSpace();
+                      let idx = getIDX();
 
-                      if (box && space) {
-                        console.log("3BOX is already open and available");
-                        changeTo3BoxLoadPage();
+                      if (idx) {
+                        console.log("IDX is already open and available");
+                        changeToIDXLoadPage();
                       }
                     }}
                     startIcon={<ThreeBoxIcon />}
                   >
-                    Load from 3Box
+                    Load from IDX
                   </Button>
                 </Tooltip>
               </Grid>
@@ -561,10 +560,10 @@ function LoadDialog(props) {
             </div>
           </>
         )}
-        {loadType === "3BOX_LOAD" && (
+        {loadType === "IDX_LOAD" && (
           <>
             <div style={{ padding: 32, textAlign: "center" }}>
-              <Typography variant="button">Load from 3Box</Typography>
+              <Typography variant="button">Load from IDX</Typography>
               <div style={{ marginTop: 16, marginBottom: 16 }}>
                 <FilesList files={documents} onClick={open3BoxFile} />
               </div>
@@ -611,7 +610,7 @@ function LoadDialog(props) {
                   screenshot
                 );
                 updateDocumentInfo(documentTitle);
-                localStorage.setItem(STORAGE_3BOX_DOCUMENT, documentTitle);
+                localStorage.setItem(STORAGE_IDX_DOCUMENT, documentTitle);
                 setSaving(false);
               }}
               style={{ margin: 16 }}

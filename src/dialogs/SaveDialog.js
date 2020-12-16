@@ -194,10 +194,10 @@ function SaveDialog(props) {
   const changeTo3BoxSavePage = () => {
     let savedTitle = localStorage.getItem(STORAGE_3BOX_DOCUMENT);
     setDocumentTitle(savedTitle ? savedTitle : "");
-    if (savedTitle) {
-      updateDocumentInfo(savedTitle);
-    }
-    setSaveType("3BOX_SAVE");
+    // if (savedTitle) {
+    //   updateDocumentInfo(savedTitle);
+    // }
+    setSaveType("IDX_SAVE");
   };
 
   const download = async () => {
@@ -323,7 +323,7 @@ function SaveDialog(props) {
     await web3Connect.resetApp();
     setThreeBoxStatus(null);
     setThreeBoxConnectionStep(0);
-    setSaveType("3BOX_SCREEN");
+    setSaveType("IDX_SCREEN");
   };
 
   const handleTitle = (e) => {
@@ -423,7 +423,7 @@ function SaveDialog(props) {
               </Tooltip>
             </Grid>
             <Grid item style={{ width: 220 }}>
-              <Tooltip title="Save to your 3Box space">
+              <Tooltip title="Save to your IDX space">
                 <Button
                   variant="contained"
                   className={classes.button}
@@ -436,7 +436,7 @@ function SaveDialog(props) {
                     let fetching = is3BoxFetching();
                     if (fetching) {
                       setThreeBoxStatus(
-                        "Connection to 3Box already in progress"
+                        "Connection to IDX already in progress"
                       );
                       let checkCompletion = () => {
                         let fetchingIDX = is3BoxFetching();
@@ -456,7 +456,7 @@ function SaveDialog(props) {
                   }}
                   startIcon={<ThreeBoxIcon />}
                 >
-                  Save to 3Box
+                  Save to IDX
                 </Button>
               </Tooltip>
             </Grid>
@@ -685,7 +685,7 @@ function SaveDialog(props) {
                 <StepLabel>Sign in with your wallet</StepLabel>
               </Step>
               <Step>
-                <StepLabel>Connect to 3Box</StepLabel>
+                <StepLabel>Connect to IDX</StepLabel>
               </Step>
             </Stepper>
 
@@ -834,10 +834,10 @@ function SaveDialog(props) {
           </div>
         </>
       )}
-      {saveType === "3BOX_SAVE" && (
+      {saveType === "IDX_SAVE" && (
         <>
           <div style={{ padding: 32, textAlign: "center" }}>
-            <Typography variant="button">Save to 3Box</Typography>
+            <Typography variant="button">Save to IDX</Typography>
             <Typography
               variant="caption"
               style={{
@@ -848,7 +848,7 @@ function SaveDialog(props) {
               }}
               display="block"
             >
-              You can save your eth.build file directly to your 3Box private
+              You can save your eth.build file directly to your IDX private
               space. This means that it is saved encrypted on IPFS and only you
               can access to it.
             </Typography>
@@ -888,15 +888,13 @@ function SaveDialog(props) {
               color="primary"
               onClick={async () => {
                 setSaving(true);
-                let space = getSpace();
-                await saveDocument(
-                  space,
-                  documentTitle,
-                  compressed,
-                  screenshot
+                await generatePrivateKey(
+                  web3Connect.address,
+                  web3Connect.provider
                 );
-                updateDocumentInfo(documentTitle);
-                localStorage.setItem(STORAGE_3BOX_DOCUMENT, documentTitle);
+                await saveDocumentIDX(documentTitle, compressed, screenshot);
+                // updateDocumentInfo(documentTitle);
+                localStorage.setItem(STORAGE_IDX_DOCUMENT, documentTitle);
                 setSaving(false);
               }}
               style={{ margin: 16 }}
