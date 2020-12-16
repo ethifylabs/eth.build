@@ -17,18 +17,27 @@ import {
   Tooltip,
   // Switch,
   // FormControlLabel,
-  Link
+  Link,
 } from "@material-ui/core";
 import GetAppIcon from "@material-ui/icons/GetApp";
 import ShareIcon from "@material-ui/icons/Share";
 import FileCopyIcon from "@material-ui/icons/FileCopy";
 import useWeb3Connect from "../utils/useWeb3Connect";
 import {
+  openIDX,
+  logoutIDX,
+  getIDX,
+  isIDXFetching,
+  generatePrivateKey,
+  saveDocumentIDX,
+} from "../utils/IDXManager";
+
+import {
   open3Box,
   logout3Box,
   getSpace,
   getBox,
-  isFetching
+  is3BoxFetching,
 } from "../utils/3BoxManager";
 
 import moment from "moment";
@@ -37,6 +46,7 @@ import Box from "3box";
 import ProfileHover from "profile-hover";
 import { getDocumentInfo, saveDocument } from "../utils/Documents3BoxSpace";
 
+const STORAGE_IDX_DOCUMENT = "eth.build.documentTitleIDX";
 const STORAGE_3BOX_DOCUMENT = "eth.build.documentTitle3Box";
 
 var codec = require("json-url")("lzw");
@@ -45,11 +55,11 @@ const axios = require("axios");
 
 const useStyles = makeStyles({
   button: {
-    width: 200
-  }
+    width: 200,
+  },
 });
 
-const ThreeBoxIcon = props => {
+const ThreeBoxIcon = (props) => {
   return (
     <SvgIcon {...props} viewBox="0 0 290 289">
       <path
@@ -66,7 +76,7 @@ function SaveDialog(props) {
     setOpenSaveDialog,
     openSaveDialog,
     dynamicWidth,
-    screenshot
+    screenshot,
   } = props;
 
   const classes = useStyles();
@@ -90,14 +100,18 @@ function SaveDialog(props) {
   const connected = web3Connect.connected;
 
   const [threeBoxStatus, setThreeBoxStatus] = React.useState(null);
+  const [idxStatus, setIDXStatus] = React.useState(null);
   const [threeBoxConnectionStep, setThreeBoxConnectionStep] = React.useState(0);
+  const [idxConnectionStep, setIDXConnectionStep] = React.useState(0);
   const [saving, setSaving] = React.useState(false);
 
   const handleClose = () => {
     setOpenSaveDialog(false);
     setSaveType(null);
     setThreeBoxStatus(null);
+    setIDXStatus(null);
     setThreeBoxConnectionStep(0);
+    setIDXConnectionStep(0);
     clearTimeout(updateTimer);
     setUpdateTimer(null);
     setSaving(false);
@@ -105,7 +119,7 @@ function SaveDialog(props) {
 
   React.useEffect(() => {
     if (liteGraph) {
-      codec.compress(liteGraph.serialize()).then(data => {
+      codec.compress(liteGraph.serialize()).then((data) => {
         setCompressed(data);
       });
     }
@@ -115,10 +129,9 @@ function SaveDialog(props) {
     //     ? Box.isLoggedIn(web3Connect.address)
     //     : "n/a"
     // });
-
     let space = getSpace();
     let box = getBox();
-    let fetching = isFetching();
+    let fetching = is3BoxFetching();
 
     if (
       web3Connect.address &&
@@ -133,19 +146,27 @@ function SaveDialog(props) {
   });
 
   React.useEffect(() => {
+    let idx = getIDX();
+    let idxFetching = isIDXFetching();
+
+    if (saveType === "IDX_SCREEN" && idx !== null && !idxFetching) {
+      changeToIDXSavePage();
+    }
+
     let space = getSpace();
     let box = getBox();
-    let fetching = isFetching();
+    let box3Fetching = is3BoxFetching();
 
     if (
       saveType === "3BOX_SCREEN" &&
       box !== null &&
       space !== null &&
-      !fetching
+      !box3Fetching
     ) {
       changeTo3BoxSavePage();
     }
   }, [saveType]);
+
   let link =
     window.location.protocol + "//" + window.location.host + "/" + compressed;
 
@@ -161,6 +182,15 @@ function SaveDialog(props) {
       </div>
     );
   }
+  const changeToIDXSavePage = () => {
+    let savedTitle = localStorage.getItem(STORAGE_IDX_DOCUMENT);
+    setDocumentTitle(savedTitle ? savedTitle : "");
+    if (savedTitle) {
+      updateDocumentInfo(savedTitle);
+    }
+    setSaveType("IDX_SAVE");
+  };
+
   const changeTo3BoxSavePage = () => {
     let savedTitle = localStorage.getItem(STORAGE_3BOX_DOCUMENT);
     setDocumentTitle(savedTitle ? savedTitle : "");
@@ -169,6 +199,7 @@ function SaveDialog(props) {
     }
     setSaveType("3BOX_SAVE");
   };
+
   const download = async () => {
     console.log("SAVING COMPRESSED", compressed);
 
@@ -198,7 +229,7 @@ function SaveDialog(props) {
       document.body.appendChild(element);
       element.click();
       document.body.removeChild(element);
-      setTimeout(function() {
+      setTimeout(function () {
         URL.revokeObjectURL(url);
       }, 1000 * 60);
       handleClose();
@@ -209,7 +240,7 @@ function SaveDialog(props) {
     console.log("share", compressed);
     setSaveType("SHARE");
     let result = await axios.post("https://network.eth.build:44386/build", {
-      compressed
+      compressed,
     });
 
     console.log("share result", result);
@@ -225,6 +256,26 @@ function SaveDialog(props) {
     //setOpenSaveDialog(false);
   };
 
+  const connectToIDX = async () => {
+    try {
+      let { idx } = await openIDX(
+        web3Connect.address,
+        web3Connect.provider,
+        setIDXStatus
+      );
+
+      let savedTitle = localStorage.getItem(STORAGE_IDX_DOCUMENT);
+      setDocumentTitle(savedTitle ? savedTitle : "");
+
+      // let documentInfo = await getDocumentInfo(idx, savedTitle);
+      // setCurrentDocumentInfo(documentInfo.metadata ? documentInfo : null);
+
+      setSaveType("IDX_SAVE");
+    } catch (error) {
+      setIDXStatus(error);
+    }
+  };
+
   const connectTo3Box = async () => {
     try {
       let { space } = await open3Box(
@@ -233,11 +284,14 @@ function SaveDialog(props) {
         setThreeBoxStatus
       );
 
+
       let savedTitle = localStorage.getItem(STORAGE_3BOX_DOCUMENT);
       setDocumentTitle(savedTitle ? savedTitle : "");
 
+
       let documentInfo = await getDocumentInfo(space, savedTitle);
       setCurrentDocumentInfo(documentInfo.metadata ? documentInfo : null);
+
 
       setSaveType("3BOX_SAVE");
     } catch (error) {
@@ -245,18 +299,26 @@ function SaveDialog(props) {
     }
   };
 
-  const updateDocumentInfo = async fileName => {
+  const updateDocumentInfo = async (fileName) => {
     let space = getSpace();
     if (space) {
       let documentInfo = await getDocumentInfo(space, fileName);
       console.log("Updated DocumentInfo: ", documentInfo);
       setCurrentDocumentInfo(documentInfo.metadata ? documentInfo : null);
     } else {
-      console.log("NO 3BOX SPACE");
+      console.log("NO #BOX SPACE");
     }
   };
 
-  const logout = async () => {
+  const idxLogout = async () => {
+    await logoutIDX();
+    await web3Connect.resetApp();
+    setIDXStatus(null);
+    setIDXConnectionStep(0);
+    setSaveType("IDX_SCREEN");
+  };
+
+  const threeBoxLogout = async () => {
     await logout3Box();
     await web3Connect.resetApp();
     setThreeBoxStatus(null);
@@ -264,18 +326,18 @@ function SaveDialog(props) {
     setSaveType("3BOX_SCREEN");
   };
 
-  const handleTitle = e => {
+  const handleTitle = (e) => {
     let title = e.target.value;
     setDocumentTitle(title);
-    if (updateTimer) {
-      clearTimeout(updateTimer);
-    }
-    setUpdateTimer(
-      setTimeout(() => {
-        console.log("Running timer for ", title);
-        updateDocumentInfo(title);
-      }, 500)
-    );
+    // if (updateTimer) {
+    //   clearTimeout(updateTimer);
+    // }
+    // setUpdateTimer(
+    //   setTimeout(() => {
+    //     console.log("Running timer for ", title);
+    //     updateDocumentInfo(title);
+    //   }, 500)
+    // );
   };
 
   return (
@@ -285,6 +347,7 @@ function SaveDialog(props) {
       }}
       open={openSaveDialog}
       maxWidth="md"
+      style={{ zIndex: 99 }}
     >
       {/* <DialogTitle id="save-dialog" style={{ textAlign: "center" }}>
         <Icon style={{ verticalAlign: "middle" }}>save</Icon>
@@ -359,43 +422,79 @@ function SaveDialog(props) {
                 </Button>
               </Tooltip>
             </Grid>
-
             <Grid item style={{ width: 220 }}>
               <Tooltip title="Save to your 3Box space">
                 <Button
                   variant="contained"
                   className={classes.button}
                   color="primary"
-                  onClick={() => {
+                  onClick={async () => {
                     setSaveType("3BOX_SCREEN");
                     if (connected && threeBoxConnectionStep === 0) {
                       setThreeBoxConnectionStep(1);
                     }
-                    let fetching = isFetching();
+                    let fetching = is3BoxFetching();
                     if (fetching) {
                       setThreeBoxStatus(
                         "Connection to 3Box already in progress"
                       );
                       let checkCompletion = () => {
-                        let fetching3Box = isFetching();
-                        if (!fetching3Box) {
-                          changeTo3BoxSavePage();
+                        let fetchingIDX = is3BoxFetching();
+                        if (!fetchingIDX) {
+                          changeToIDXSavePage();
                         } else {
                           setTimeout(checkCompletion, 1000);
                         }
                       };
                       setTimeout(checkCompletion, 1000);
                     }
-                    let box = getBox();
-                    let space = getSpace();
-                    if (box && space) {
-                      console.log("3BOX is already open and available");
-                      changeTo3BoxSavePage();
+                    let idx = getIDX();
+                    if (idx) {
+                      console.log("IDX is already open and available");
+                      changeToIDXSavePage();
                     }
                   }}
                   startIcon={<ThreeBoxIcon />}
                 >
                   Save to 3Box
+                </Button>
+              </Tooltip>
+            </Grid>
+            <Grid item style={{ width: 220 }}>
+              <Tooltip title="Save to your IDX space">
+                <Button
+                  variant="contained"
+                  className={classes.button}
+                  color="primary"
+                  onClick={async () => {
+                    setSaveType("IDX_SCREEN");
+                    if (connected && idxConnectionStep === 0) {
+                      setIDXConnectionStep(1);
+                    }
+                    let fetching = isIDXFetching();
+                    if (fetching) {
+                      setIDXStatus(
+                        "Connection to IDX already in progress"
+                      );
+                      let checkCompletion = () => {
+                        let fetchingIDX = isIDXFetching();
+                        if (!fetchingIDX) {
+                          changeToIDXSavePage();
+                        } else {
+                          setTimeout(checkCompletion, 1000);
+                        }
+                      };
+                      setTimeout(checkCompletion, 1000);
+                    }
+                    let idx = getIDX();
+                    if (idx) {
+                      console.log("IDX is already open and available");
+                      changeToIDXSavePage();
+                    }
+                  }}
+                  startIcon={<ThreeBoxIcon />}
+                >
+                  Save to IDX
                 </Button>
               </Tooltip>
             </Grid>
@@ -424,7 +523,7 @@ function SaveDialog(props) {
                   width: "100%",
                   textAlign: "center",
                   fontSize: 12,
-                  color: "#000000"
+                  color: "#000000",
                 }}
               >
                 <a href={"https://eth.build/build#" + shared}>
@@ -438,7 +537,7 @@ function SaveDialog(props) {
                     style={{
                       border: "1px solid #dddddd",
                       padding: 20,
-                      margin: 5
+                      margin: 5,
                     }}
                   />
                 </div>
@@ -452,7 +551,7 @@ function SaveDialog(props) {
                     display: "block",
                     textAlign: "center",
                     margin: "auto",
-                    marginBottom: 16
+                    marginBottom: 16,
                   }}
                 />
                 <Typography variant="overline" display="block" gutterBottom>
@@ -473,7 +572,7 @@ function SaveDialog(props) {
                 border: "1px solid #dddddd",
                 padding: 5,
                 margin: 5,
-                width: dynamicWidth
+                width: dynamicWidth,
               }}
               value={link}
             ></input>
@@ -495,13 +594,90 @@ function SaveDialog(props) {
         </>
       )}
 
+      {saveType === "IDX_SCREEN" && (
+        <>
+          <div
+            style={{
+              justifyContent: "center",
+              padding: 32,
+              textAlign: "center",
+            }}
+          >
+            <Stepper alternativeLabel activeStep={idxConnectionStep}>
+              <Step>
+                <StepLabel>Sign in with your wallet</StepLabel>
+              </Step>
+              <Step>
+                <StepLabel>Connect to IDX</StepLabel>
+              </Step>
+            </Stepper>
+
+            {idxConnectionStep === 0 && (
+              <Button
+                variant="contained"
+                color="primary"
+                onClick={async () => {
+                  setOpenSaveDialog(false);
+                  await web3Connect.triggerConnect();
+                  setOpenSaveDialog(true);
+                  setIDXConnectionStep(1);
+                }}
+                style={{ margin: 16 }}
+              >
+                Choose Wallet
+              </Button>
+            )}
+            {idxConnectionStep === 1 && (
+              <div>
+                {web3Connect.address !== null && (
+                  <ProfileHover
+                    address={web3Connect.address}
+                    showName={true}
+                    orientation="bottom"
+                    displayFull={true}
+                  />
+                )}
+                <div>
+                  <Button
+                    variant="contained"
+                    color="primary"
+                    onClick={connectToIDX}
+                    style={{ margin: 8 }}
+                    disabled={isIDXFetching()}
+                  >
+                    Connect
+                  </Button>
+                  <Typography
+                    style={{ marginTop: 8, height: 24 }}
+                    display="block"
+                    variant="caption"
+                  >
+                    {idxStatus ? idxStatus : ""}
+                  </Typography>
+                </div>
+              </div>
+            )}
+            <Link
+              component="button"
+              variant="body2"
+              onClick={idxLogout}
+              style={{
+                display: "block",
+                margin: "auto",
+              }}
+            >
+              Logout
+            </Link>
+          </div>
+        </>
+      )}
       {saveType === "3BOX_SCREEN" && (
         <>
           <div
             style={{
               justifyContent: "center",
               padding: 32,
-              textAlign: "center"
+              textAlign: "center",
             }}
           >
             <Stepper alternativeLabel activeStep={threeBoxConnectionStep}>
@@ -544,7 +720,7 @@ function SaveDialog(props) {
                     color="primary"
                     onClick={connectTo3Box}
                     style={{ margin: 8 }}
-                    disabled={isFetching()}
+                    disabled={is3BoxFetching()}
                   >
                     Connect
                   </Button>
@@ -561,10 +737,96 @@ function SaveDialog(props) {
             <Link
               component="button"
               variant="body2"
-              onClick={logout}
+              onClick={threeBoxLogout}
               style={{
                 display: "block",
-                margin: "auto"
+                margin: "auto",
+              }}
+            >
+              Logout
+            </Link>
+          </div>
+        </>
+      )}
+      {saveType === "IDX_SAVE" && (
+        <>
+          <div style={{ padding: 32, textAlign: "center" }}>
+            <Typography variant="button">Save to IDX</Typography>
+            <Typography
+              variant="caption"
+              style={{
+                marginTop: 16,
+                marginBottom: 16,
+                maxWidth: 300,
+                textAlign: "justify",
+              }}
+              display="block"
+            >
+              You can save your eth.build file directly to your IDX private
+              space. This means that it is saved encrypted on IPFS and only you
+              can access to it.
+            </Typography>
+            <TextField
+              fullWidth
+              name="title"
+              label="File Name"
+              variant="outlined"
+              value={documentTitle}
+              onChange={handleTitle}
+              required
+              style={{ marginTop: 16 }}
+            />
+
+            {/* <FormControlLabel
+              control={
+                <Switch
+                  checked={publicDocument}
+                  onChange={event => setPublicDocument(event.target.checked)}
+                  value="publicDocument"
+                  color="primary"
+                />
+              }
+              label="Public"
+            /> */}
+
+            <Typography variant="caption" display="block">
+              {currentDocumentInfo !== null
+                ? `Last saved ${moment
+                    .unix(currentDocumentInfo.metadata.timestamp)
+                    .fromNow()}`
+                : ""}
+            </Typography>
+
+            <Button
+              variant="contained"
+              color="primary"
+              onClick={async () => {
+                setSaving(true);
+                await generatePrivateKey(
+                  web3Connect.address,
+                  web3Connect.provider
+                );
+                await saveDocumentIDX(documentTitle, compressed, screenshot);
+                // updateDocumentInfo(documentTitle);
+                localStorage.setItem(STORAGE_IDX_DOCUMENT, documentTitle);
+                setSaving(false);
+              }}
+              style={{ margin: 16 }}
+              disabled={
+                (currentDocumentInfo &&
+                  currentDocumentInfo.document.data === compressed) ||
+                saving
+              }
+            >
+              Save
+            </Button>
+            <Link
+              component="button"
+              variant="body2"
+              onClick={idxLogout}
+              style={{
+                display: "block",
+                margin: "auto",
               }}
             >
               Logout
@@ -582,7 +844,7 @@ function SaveDialog(props) {
                 marginTop: 16,
                 marginBottom: 16,
                 maxWidth: 300,
-                textAlign: "justify"
+                textAlign: "justify",
               }}
               display="block"
             >
@@ -649,10 +911,10 @@ function SaveDialog(props) {
             <Link
               component="button"
               variant="body2"
-              onClick={logout}
+              onClick={threeBoxLogout}
               style={{
                 display: "block",
-                margin: "auto"
+                margin: "auto",
               }}
             >
               Logout

@@ -11,11 +11,20 @@ import { Button, SvgIcon, Typography, Tooltip, Link } from "@material-ui/core";
 import FileCopyIcon from "@material-ui/icons/FileCopy";
 import useWeb3Connect from "../utils/useWeb3Connect";
 import {
+  openIDX,
+  logoutIDX,
+  getIDX,
+  isIDXFetching,
+  generatePrivateKey,
+  getSavedDocuments,
+} from "../utils/IDXManager";
+
+import {
   open3Box,
   logout3Box,
   getSpace,
   getBox,
-  isFetching
+  is3BoxFetching,
 } from "../utils/3BoxManager";
 
 import Box from "3box";
@@ -23,17 +32,19 @@ import ProfileHover from "profile-hover";
 import { loadDocuments } from "../utils/Documents3BoxSpace";
 import FilesList from "./FilesList";
 
+const STORAGE_IDX_DOCUMENT = "eth.build.documentTitleIDX";
+
 const STORAGE_3BOX_DOCUMENT = "eth.build.documentTitle3Box";
 
 var codec = require("json-url")("lzw");
 
 const useStyles = makeStyles({
   button: {
-    width: 200
-  }
+    width: 200,
+  },
 });
 
-const ThreeBoxIcon = props => {
+const ThreeBoxIcon = (props) => {
   return (
     <SvgIcon {...props} viewBox="0 0 290 289">
       <path
@@ -57,13 +68,19 @@ function LoadDialog(props) {
 
   const [threeBoxStatus, setThreeBoxStatus] = React.useState(null);
   const [threeBoxConnectionStep, setThreeBoxConnectionStep] = React.useState(0);
+
+  const [idxStatus, setIDXStatus] = React.useState(null);
+  const [idxConnectionStep, setIDXConnectionStep] = React.useState(0);
+
   const [documents, setDocuments] = React.useState([]);
 
   const handleClose = () => {
     setOpenLoadDialog(false);
     setLoadType(null);
     setThreeBoxStatus(null);
+    setIDXStatus(null);
     setThreeBoxConnectionStep(0);
+    setIDXConnectionStep(0);
     // clearTimeout(updateTimer);
     // setUpdateTimer(null);
     // setSaving(false);
@@ -75,14 +92,11 @@ function LoadDialog(props) {
         ? Box.isLoggedIn(web3Connect.address)
         : "n/a"
     });
-
     let space = getSpace();
     let box = getBox();
-    let fetching = isFetching();
-
+    let fetching = is3BoxFetching();
     if (
       web3Connect.address &&
-      Box.isLoggedIn(web3Connect.address) &&
       !box &&
       !space &&
       !fetching
@@ -93,25 +107,52 @@ function LoadDialog(props) {
   });
 
   React.useEffect(() => {
+    let idx = getIDX();
+    let idxFetching = isIDXFetching();
+
+    if (loadType === "IDX_SCREEN" && idx !== null && !idxFetching) {
+      changeToIDXLoadPage();
+    }
+
     let space = getSpace();
     let box = getBox();
-    let fetching = isFetching();
+    let threeBoxFetching = is3BoxFetching();
 
     if (
       loadType === "3BOX_SCREEN" &&
-      box !== null &&
-      space !== null &&
-      !fetching
+      box !== null &&	
+      space !== null &&	
+      !threeBoxFetching
     ) {
       changeTo3BoxLoadPage();
     }
   }, [loadType]);
+
+  const changeToIDXLoadPage = async () => {
+
+    setDocuments(await getSavedDocuments());
+    setLoadType("IDX_LOAD");
+  };
 
   const changeTo3BoxLoadPage = async () => {
     let space = getSpace();
 
     setDocuments(await loadDocuments(space));
     setLoadType("3BOX_LOAD");
+  };
+
+  const connectToIDX = async () => {
+    try {
+      let { idx } = await openIDX(
+        web3Connect.address,
+        web3Connect.provider,
+        setIDXStatus
+      );
+      setDocuments(await getSavedDocuments());
+      setLoadType("IDX_LOAD");
+    } catch (error) {
+      setIDXStatus(error);
+    }
   };
 
   const connectTo3Box = async () => {
@@ -128,7 +169,15 @@ function LoadDialog(props) {
     }
   };
 
-  const logout = async () => {
+  const idxLogout = async () => {
+    await logoutIDX();
+    await web3Connect.resetApp();
+    setIDXStatus(null);
+    setIDXConnectionStep(0);
+    setLoadType("IDX_SCREEN");
+  };
+
+  const threeBoxLogout = async () => {
     await logout3Box();
     await web3Connect.resetApp();
     setThreeBoxStatus(null);
@@ -141,7 +190,7 @@ function LoadDialog(props) {
     handleClose();
   };
 
-  const getJsonFromCompressed = compressedString =>
+  const getJsonFromCompressed = (compressedString) =>
     new Promise((resolve, reject) => {
       let loc = compressedString.indexOf("<string>");
       if (loc > 0) {
@@ -154,7 +203,7 @@ function LoadDialog(props) {
         );
       }
       console.log("decompress:", compressedString);
-      codec.decompress(compressedString).then(json => {
+      codec.decompress(compressedString).then((json) => {
         console.log("configure graph with:", json);
         if (json) {
           resolve(json);
@@ -162,9 +211,21 @@ function LoadDialog(props) {
       });
     });
 
-  const openFile = async file => {
+  const openIDXFile = async (file) => {
     console.log("Opening FILE: ", file);
-    let compressedString = file.data;
+    let compressedString = file.content;
+    let json = await getJsonFromCompressed(compressedString);
+
+    localStorage.setItem("litegraph", JSON.stringify(json));
+    liteGraph.configure(json);
+
+    localStorage.setItem(STORAGE_IDX_DOCUMENT, file.fileName);
+    handleClose();
+  };
+
+  const open3BoxFile = async (file) => {
+    console.log("Opening FILE: ", file);
+    let compressedString = file.content;
     let json = await getJsonFromCompressed(compressedString);
 
     localStorage.setItem("litegraph", JSON.stringify(json));
@@ -182,17 +243,17 @@ function LoadDialog(props) {
             border: "1px solid #777777",
             color: live ? "#00ff00" : "#0000ff",
             padding: 5,
-            cursor: "pointer"
+            cursor: "pointer",
           }}
         >
           <input
             id="loadjsonfile"
             type="file"
             name="file"
-            onChange={e => {
+            onChange={(e) => {
               console.log("FILE", e.target.files[0]);
               var reader = new FileReader();
-              reader.onload = event => {
+              reader.onload = (event) => {
                 let compressedString = event.target.result;
                 //console.log("compressedString",compressedString)
                 let loc = compressedString.indexOf("<string>");
@@ -206,7 +267,7 @@ function LoadDialog(props) {
                   );
                 }
                 console.log("decompress:", compressedString);
-                codec.decompress(compressedString).then(json => {
+                codec.decompress(compressedString).then((json) => {
                   console.log("configure graph with:", json);
                   if (json) {
                     localStorage.setItem("litegraph", JSON.stringify(json));
@@ -229,6 +290,7 @@ function LoadDialog(props) {
         }}
         open={openLoadDialog}
         maxWidth="md"
+        style={{ zIndex: 99 }}
       >
         {/* <DialogTitle id="save-dialog" style={{ textAlign: "center" }}>
         <Icon style={{ verticalAlign: "middle" }}>save</Icon>
@@ -264,19 +326,19 @@ function LoadDialog(props) {
                     variant="contained"
                     className={classes.button}
                     color="primary"
-                    onClick={() => {
+                    onClick={async () => {
                       setLoadType("3BOX_SCREEN");
                       if (connected && threeBoxConnectionStep === 0) {
                         setThreeBoxConnectionStep(1);
                       }
-                      let fetching = isFetching();
+                      let fetching = isIDXFetching();
                       if (fetching) {
                         setThreeBoxStatus(
                           "Connection to 3Box already in progress"
                         );
                         let checkCompletion = () => {
-                          let fetching3Box = isFetching();
-                          if (!fetching3Box) {
+                          let fetchingIDX = isIDXFetching();
+                          if (!fetchingIDX) {
                             changeTo3BoxLoadPage();
                           } else {
                             setTimeout(checkCompletion, 1000);
@@ -298,17 +360,137 @@ function LoadDialog(props) {
                   </Button>
                 </Tooltip>
               </Grid>
+              <Grid item style={{ width: 220 }}>
+                <Tooltip title="Load from your IDX space">
+                  <Button
+                    variant="contained"
+                    className={classes.button}
+                    color="primary"
+                    onClick={async () => {
+                      await generatePrivateKey(
+                        web3Connect.address,
+                        web3Connect.provider
+                      );
+                      setLoadType("IDX_SCREEN");
+                      if (connected && idxConnectionStep === 0) {
+                        setIDXConnectionStep(1);
+                      }
+                      let fetching = isIDXFetching();
+                      if (fetching) {
+                        setIDXStatus(
+                          "Connection to IDX already in progress"
+                        );
+                        let checkCompletion = () => {
+                          let fetchingIDX = isIDXFetching();
+                          if (!fetchingIDX) {
+                            changeToIDXLoadPage();
+                          } else {
+                            setTimeout(checkCompletion, 1000);
+                          }
+                        };
+                        setTimeout(checkCompletion, 1000);
+                      }
+                      let idx = getIDX();
+
+                      if (idx) {
+                        console.log("IDX is already open and available");
+                        changeToIDXLoadPage();
+                      }
+                    }}
+                    startIcon={<ThreeBoxIcon />}
+                  >
+                    Load from IDX
+                  </Button>
+                </Tooltip>
+              </Grid>
             </Grid>
           </>
         )}
 
+        {loadType === "IDX_SCREEN" && (
+          <>
+            <div
+              style={{
+                justifyContent: "center",
+                padding: 32,
+                textAlign: "center",
+              }}
+            >
+              <Stepper alternativeLabel activeStep={idxConnectionStep}>
+                <Step>
+                  <StepLabel>Sign in with your wallet</StepLabel>
+                </Step>
+                <Step>
+                  <StepLabel>Connect to IDX</StepLabel>
+                </Step>
+              </Stepper>
+
+              {idxConnectionStep === 0 && (
+                <Button
+                  variant="contained"
+                  color="primary"
+                  onClick={async () => {
+                    setOpenLoadDialog(false);
+                    await web3Connect.triggerConnect();
+                    setOpenLoadDialog(true);
+                    setIDXConnectionStep(1);
+                  }}
+                  style={{ margin: 16 }}
+                >
+                  Choose Wallet
+                </Button>
+              )}
+              {idxConnectionStep === 1 && (
+                <div>
+                  {web3Connect.address !== null && (
+                    <ProfileHover
+                      address={web3Connect.address}
+                      showName={true}
+                      orientation="bottom"
+                      displayFull={true}
+                    />
+                  )}
+                  <div>
+                    <Button
+                      variant="contained"
+                      color="primary"
+                      onClick={connectToIDX}
+                      style={{ margin: 8 }}
+                      disabled={isIDXFetching()}
+                    >
+                      Connect
+                    </Button>
+                    <Typography
+                      style={{ marginTop: 8, height: 24 }}
+                      display="block"
+                      variant="caption"
+                    >
+                      {idxStatus ? idxStatus : ""}
+                    </Typography>
+                  </div>
+                </div>
+              )}
+              <Link
+                component="button"
+                variant="body2"
+                onClick={idxLogout}
+                style={{
+                  display: "block",
+                  margin: "auto",
+                }}
+              >
+                Logout
+              </Link>
+            </div>
+          </>
+        )}
         {loadType === "3BOX_SCREEN" && (
           <>
             <div
               style={{
                 justifyContent: "center",
                 padding: 32,
-                textAlign: "center"
+                textAlign: "center",
               }}
             >
               <Stepper alternativeLabel activeStep={threeBoxConnectionStep}>
@@ -316,7 +498,7 @@ function LoadDialog(props) {
                   <StepLabel>Sign in with your wallet</StepLabel>
                 </Step>
                 <Step>
-                  <StepLabel>Connect to 3Box</StepLabel>
+                  <StepLabel>Connect to IDX</StepLabel>
                 </Step>
               </Stepper>
 
@@ -351,7 +533,7 @@ function LoadDialog(props) {
                       color="primary"
                       onClick={connectTo3Box}
                       style={{ margin: 8 }}
-                      disabled={isFetching()}
+                      disabled={is3BoxFetching()}
                     >
                       Connect
                     </Button>
@@ -368,10 +550,10 @@ function LoadDialog(props) {
               <Link
                 component="button"
                 variant="body2"
-                onClick={logout}
+                onClick={threeBoxLogout}
                 style={{
                   display: "block",
-                  margin: "auto"
+                  margin: "auto",
                 }}
               >
                 Logout
@@ -384,7 +566,7 @@ function LoadDialog(props) {
             <div style={{ padding: 32, textAlign: "center" }}>
               <Typography variant="button">Load from 3Box</Typography>
               <div style={{ marginTop: 16, marginBottom: 16 }}>
-                <FilesList files={documents} onClick={openFile} />
+                <FilesList files={documents} onClick={open3BoxFile} />
               </div>
               {/* <TextField
               fullWidth
@@ -444,10 +626,86 @@ function LoadDialog(props) {
               <Link
                 component="button"
                 variant="body2"
-                onClick={logout}
+                onClick={threeBoxLogout}
                 style={{
                   display: "block",
-                  margin: "auto"
+                  margin: "auto",
+                }}
+              >
+                Logout
+              </Link>
+            </div>
+          </>
+        )}
+        {loadType === "IDX_LOAD" && (
+          <>
+            <div style={{ padding: 32, textAlign: "center" }}>
+              <Typography variant="button">Load from IDX</Typography>
+              <div style={{ marginTop: 16, marginBottom: 16 }}>
+                <FilesList files={documents} onClick={openIDXFile} />
+              </div>
+              {/* <TextField
+              fullWidth
+              name="title"
+              label="File Name"
+              variant="outlined"
+              value={documentTitle}
+              onChange={handleTitle}
+              required
+              style={{ marginTop: 16 }}
+            /> */}
+
+              {/* <FormControlLabel
+              control={
+                <Switch
+                  checked={publicDocument}
+                  onChange={event => setPublicDocument(event.target.checked)}
+                  value="publicDocument"
+                  color="primary"
+                />
+              }
+              label="Public"
+            /> */}
+
+              {/* <Typography variant="caption" display="block">
+              {currentDocumentInfo !== null
+                ? `Last saved ${moment
+                    .unix(currentDocumentInfo.metadata.timestamp)
+                    .fromNow()}`
+                : ""}
+            </Typography>
+
+            <Button
+              variant="contained"
+              color="primary"
+              onClick={async () => {
+                setSaving(true);
+                await saveDocument(
+                  threeBoxSpace,
+                  documentTitle,
+                  compressed,
+                  screenshot
+                );
+                updateDocumentInfo(documentTitle);
+                localStorage.setItem(STORAGE_IDX_DOCUMENT, documentTitle);
+                setSaving(false);
+              }}
+              style={{ margin: 16 }}
+              disabled={
+                (currentDocumentInfo &&
+                  currentDocumentInfo.document.data === compressed) ||
+                saving
+              }
+            >
+              Save
+            </Button> */}
+              <Link
+                component="button"
+                variant="body2"
+                onClick={idxLogout}
+                style={{
+                  display: "block",
+                  margin: "auto",
                 }}
               >
                 Logout
