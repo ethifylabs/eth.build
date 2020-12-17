@@ -805,19 +805,23 @@ function SaveDialog(props) {
               color="primary"
               onClick={async () => {
                 setSaving(true);
-                await generatePrivateKey(
-                  web3Connect.address,
-                  web3Connect.provider
-                );
-                await saveDocumentIDX(documentTitle, compressed, screenshot);
-                const documentInfo = {
-                  data: compressed,
-                  timestamp: moment().unix()
-                }
-                setIDXCurrentDocumentInfo(documentInfo)
-                // updateDocumentInfo(documentTitle);
-                localStorage.setItem(STORAGE_IDX_DOCUMENT, documentTitle);
-                setSaving(false);
+                try {
+                  await generatePrivateKey(
+                    web3Connect.address,
+                    web3Connect.provider
+                    );
+                    await saveDocumentIDX(documentTitle, compressed, screenshot);
+                    const documentInfo = {
+                      data: compressed,
+                      timestamp: moment().unix()
+                    }
+                    setIDXCurrentDocumentInfo(documentInfo)
+                    localStorage.setItem(STORAGE_IDX_DOCUMENT, documentTitle);
+                    setSaving(false);
+                  } catch (err) {
+                    console.error("Error from IDX", err);
+                    setSaving(false);
+                  }
               }}
               style={{ margin: 16 }}
               disabled={
