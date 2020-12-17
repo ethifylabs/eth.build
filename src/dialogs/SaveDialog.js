@@ -89,6 +89,7 @@ function SaveDialog(props) {
   const [documentTitle, setDocumentTitle] = React.useState("");
   // const [publicDocument, setPublicDocument] = React.useState(false);
   const [currentDocumentInfo, setCurrentDocumentInfo] = React.useState(null);
+  const [idxCurrentDocumentInfo, setIDXCurrentDocumentInfo] = React.useState(null);
   // const [lastCheckedTitle, setLastCheckedTitle] = React.useState(null);
   const [updateTimer, setUpdateTimer] = React.useState(null);
 
@@ -149,7 +150,11 @@ function SaveDialog(props) {
     let idx = getIDX();
     let idxFetching = isIDXFetching();
 
-    if (saveType === "IDX_SCREEN" && idx !== null && !idxFetching) {
+    if (
+      saveType === "IDX_SCREEN" && 
+      idx !== null && 
+      !idxFetching
+    ) {
       changeToIDXSavePage();
     }
 
@@ -258,7 +263,7 @@ function SaveDialog(props) {
 
   const connectToIDX = async () => {
     try {
-      let { idx } = await openIDX(
+      await openIDX(
         web3Connect.address,
         web3Connect.provider,
         setIDXStatus
@@ -266,9 +271,6 @@ function SaveDialog(props) {
 
       let savedTitle = localStorage.getItem(STORAGE_IDX_DOCUMENT);
       setDocumentTitle(savedTitle ? savedTitle : "");
-
-      // let documentInfo = await getDocumentInfo(idx, savedTitle);
-      // setCurrentDocumentInfo(documentInfo.metadata ? documentInfo : null);
 
       setSaveType("IDX_SAVE");
     } catch (error) {
@@ -306,7 +308,7 @@ function SaveDialog(props) {
       console.log("Updated DocumentInfo: ", documentInfo);
       setCurrentDocumentInfo(documentInfo.metadata ? documentInfo : null);
     } else {
-      console.log("NO #BOX SPACE");
+      console.log("NO 3BOX SPACE");
     }
   };
 
@@ -423,7 +425,7 @@ function SaveDialog(props) {
               </Tooltip>
             </Grid>
             <Grid item style={{ width: 220 }}>
-              <Tooltip title="Save to your IDX space">
+              <Tooltip title="Save to your 3Box space">
                 <Button
                   variant="contained"
                   className={classes.button}
@@ -436,27 +438,28 @@ function SaveDialog(props) {
                     let fetching = is3BoxFetching();
                     if (fetching) {
                       setThreeBoxStatus(
-                        "Connection to IDX already in progress"
+                        "Connection to 3Box already in progress"
                       );
                       let checkCompletion = () => {
-                        let fetchingIDX = is3BoxFetching();
-                        if (!fetchingIDX) {
-                          changeToIDXSavePage();
+                        let fetching3Box = is3BoxFetching();
+                        if (!fetching3Box) {
+                          changeTo3BoxSavePage();
                         } else {
                           setTimeout(checkCompletion, 1000);
                         }
                       };
                       setTimeout(checkCompletion, 1000);
                     }
-                    let idx = getIDX();
-                    if (idx) {
-                      console.log("IDX is already open and available");
-                      changeToIDXSavePage();
+                    let box = getBox();
+                    let space = getSpace();
+                    if (box && space) {
+                      console.log("3BOX is already open and available");
+                      changeTo3BoxSavePage();	
                     }
                   }}
                   startIcon={<ThreeBoxIcon />}
                 >
-                  Save to IDX
+                  Save to 3Box
                 </Button>
               </Tooltip>
             </Grid>
@@ -685,7 +688,7 @@ function SaveDialog(props) {
                 <StepLabel>Sign in with your wallet</StepLabel>
               </Step>
               <Step>
-                <StepLabel>Connect to IDX</StepLabel>
+                <StepLabel>Connect to 3Box</StepLabel>
               </Step>
             </Stepper>
 
@@ -790,9 +793,9 @@ function SaveDialog(props) {
             /> */}
 
             <Typography variant="caption" display="block">
-              {currentDocumentInfo !== null
+              {idxCurrentDocumentInfo !== null
                 ? `Last saved ${moment
-                    .unix(currentDocumentInfo.metadata.timestamp)
+                    .unix(idxCurrentDocumentInfo.timestamp)
                     .fromNow()}`
                 : ""}
             </Typography>
@@ -807,14 +810,19 @@ function SaveDialog(props) {
                   web3Connect.provider
                 );
                 await saveDocumentIDX(documentTitle, compressed, screenshot);
+                const documentInfo = {
+                  data: compressed,
+                  timestamp: moment().unix()
+                }
+                setIDXCurrentDocumentInfo(documentInfo)
                 // updateDocumentInfo(documentTitle);
                 localStorage.setItem(STORAGE_IDX_DOCUMENT, documentTitle);
                 setSaving(false);
               }}
               style={{ margin: 16 }}
               disabled={
-                (currentDocumentInfo &&
-                  currentDocumentInfo.document.data === compressed) ||
+                (idxCurrentDocumentInfo &&
+                  idxCurrentDocumentInfo.data === compressed) ||
                 saving
               }
             >
@@ -834,10 +842,10 @@ function SaveDialog(props) {
           </div>
         </>
       )}
-      {saveType === "IDX_SAVE" && (
+      {saveType === "3BOX_SAVE" && (
         <>
           <div style={{ padding: 32, textAlign: "center" }}>
-            <Typography variant="button">Save to IDX</Typography>
+            <Typography variant="button">Save to 3Box</Typography>
             <Typography
               variant="caption"
               style={{
@@ -848,7 +856,7 @@ function SaveDialog(props) {
               }}
               display="block"
             >
-              You can save your eth.build file directly to your IDX private
+              You can save your eth.build file directly to your 3Box private
               space. This means that it is saved encrypted on IPFS and only you
               can access to it.
             </Typography>
@@ -888,13 +896,15 @@ function SaveDialog(props) {
               color="primary"
               onClick={async () => {
                 setSaving(true);
-                await generatePrivateKey(
-                  web3Connect.address,
-                  web3Connect.provider
+                let space = getSpace();
+                await saveDocument(
+                  space,
+                  documentTitle,
+                  compressed,
+                  screenshot
                 );
-                await saveDocumentIDX(documentTitle, compressed, screenshot);
-                // updateDocumentInfo(documentTitle);
-                localStorage.setItem(STORAGE_IDX_DOCUMENT, documentTitle);
+                updateDocumentInfo(documentTitle);
+                localStorage.setItem(STORAGE_3BOX_DOCUMENT, documentTitle);
                 setSaving(false);
               }}
               style={{ margin: 16 }}

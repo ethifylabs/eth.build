@@ -137,13 +137,13 @@ function LoadDialog(props) {
   const changeTo3BoxLoadPage = async () => {
     let space = getSpace();
 
-    setDocuments(await getSavedDocuments());
-    setLoadType("IDX_LOAD");
+    setDocuments(await getSavedDocuments(space));
+    setLoadType("3BOX_LOAD");
   };
 
   const connectToIDX = async () => {
     try {
-      let { idx } = await openIDX(
+      await openIDX(
         web3Connect.address,
         web3Connect.provider,
         setIDXStatus
@@ -321,7 +321,7 @@ function LoadDialog(props) {
               </Grid>
 
               <Grid item style={{ width: 220 }}>
-                <Tooltip title="Load from your IDX space">
+                <Tooltip title="Load from your 3Box space">
                   <Button
                     variant="contained"
                     className={classes.button}
@@ -334,11 +334,11 @@ function LoadDialog(props) {
                       let fetching = isIDXFetching();
                       if (fetching) {
                         setThreeBoxStatus(
-                          "Connection to IDX already in progress"
+                          "Connection to 3Box already in progress"
                         );
                         let checkCompletion = () => {
-                          let fetchingIDX = isIDXFetching();
-                          if (!fetchingIDX) {
+                          let fetching3Box = is3BoxFetching();
+                          if (!fetching3Box) {
                             changeTo3BoxLoadPage();
                           } else {
                             setTimeout(checkCompletion, 1000);
@@ -346,16 +346,18 @@ function LoadDialog(props) {
                         };
                         setTimeout(checkCompletion, 1000);
                       }
-                      let idx = getIDX();
+                      let box = getBox();
+                      let space = getSpace();	
 
-                      if (idx) {
-                        console.log("IDX is already open and available");
-                        changeToIDXLoadPage();
+
+                      if (box && space) {
+                        console.log("3BOX is already open and available");
+                        changeTo3BoxLoadPage();
                       }
                     }}
                     startIcon={<ThreeBoxIcon />}
                   >
-                    Load from IDX
+                    Load from 3Box
                   </Button>
                 </Tooltip>
               </Grid>
@@ -497,7 +499,7 @@ function LoadDialog(props) {
                   <StepLabel>Sign in with your wallet</StepLabel>
                 </Step>
                 <Step>
-                  <StepLabel>Connect to IDX</StepLabel>
+                  <StepLabel>Connect to 3Box</StepLabel>
                 </Step>
               </Stepper>
 
@@ -565,7 +567,7 @@ function LoadDialog(props) {
             <div style={{ padding: 32, textAlign: "center" }}>
               <Typography variant="button">Load from IDX</Typography>
               <div style={{ marginTop: 16, marginBottom: 16 }}>
-                <FilesList files={documents} onClick={open3BoxFile} />
+                <FilesList files={documents} onClick={openIDXFile} />
               </div>
               {/* <TextField
               fullWidth
@@ -636,12 +638,12 @@ function LoadDialog(props) {
             </div>
           </>
         )}
-        {loadType === "IDX_LOAD" && (
+        {loadType === "3BOX_LOAD" && (
           <>
             <div style={{ padding: 32, textAlign: "center" }}>
-              <Typography variant="button">Load from IDX</Typography>
+              <Typography variant="button">Load from 3Box</Typography>
               <div style={{ marginTop: 16, marginBottom: 16 }}>
-                <FilesList files={documents} onClick={openIDXFile} />
+                <FilesList files={documents} onClick={open3BoxFile} />
               </div>
               {/* <TextField
               fullWidth
@@ -686,7 +688,7 @@ function LoadDialog(props) {
                   screenshot
                 );
                 updateDocumentInfo(documentTitle);
-                localStorage.setItem(STORAGE_IDX_DOCUMENT, documentTitle);
+                localStorage.setItem(STORAGE_3BOX_DOCUMENT, documentTitle);
                 setSaving(false);
               }}
               style={{ margin: 16 }}

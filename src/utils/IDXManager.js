@@ -253,8 +253,6 @@ export const getSavedDocuments = async () => {
   const r = await db.find(threadId, "ethBuild", q);
   console.log("user Ids r", r);
 
-  const user_ids = r.map((instance) => instance._id);
-  console.log("user Ids", user_ids);
   return r;
 };
 
