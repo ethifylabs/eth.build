@@ -1,11 +1,13 @@
 
 🛠 [ETH.Build](https://eth.build)
 
-The project uses IDX and ThreadsDB to store files of eth.build.
+## IDX Integration
 
-Users now have option to put their data on 3box as well as IDX+ThreadsDB.
+- The project uses IDX and ThreadsDB to store files of eth.build.
 
-Using Textile ThreadsDB makes sure that the data is secure and encrypted, while IDX saves the data for ThreadDB configuration
+- Users now have option to put their data on 3box as well as IDX+ThreadsDB.
+
+- Using Textile ThreadsDB makes sure that the data is secure and encrypted, while IDX saves the data for ThreadDB configuration
 
 __Video Location__
 
