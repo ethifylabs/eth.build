@@ -1,6 +1,66 @@
 
 🛠 [ETH.Build](https://eth.build)
 
+The project uses IDX and ThreadsDB to store files of eth.build.
+
+Users now have option to put their data on 3box as well as IDX+ThreadsDB.
+
+Using Textile ThreadsDB makes sure that the data is secure and encrypted, while IDX saves the data for ThreadDB configuration
+
+__Video Location__
+
+https://www.youtube.com/watch?v=eOWlUPwAsvs
+
+IDX Data Saved - 
+
+```
+{
+  "userThreadId": "threadsDBId"
+}
+```
+
+_Threads DB Schema_
+
+```
+ethBuildSchema = {
+  $id: "https://example.com/ethBuild.schema.json",
+  $schema: "http://json-schema.org/draft-07/schema#",
+  title: "ethBuild",
+  type: "object",
+  required: ["_id"],
+  properties: {
+    _id: {
+      type: "string",
+      description: "The instance's id.",
+    },
+    idxDid: {
+      type: "string",
+      description: "User's IDX DID.",
+    },
+    fileName: {
+      type: "string",
+      description: "The filename",
+    },
+    content: {
+      type: "string",
+      description: "The content of file",
+    },
+    screenshot: {
+      type: "string",
+      description: "The screenshot of file",
+    },
+  },
+};
+```
+
+__ScreenShots__
+
+<p align="center" ><img src="https://i.imgur.com/2fGKZVJ.png" alt=""></p>
+<p align="center" ><img src="https://i.imgur.com/LT91ObX.png" alt=""></p>
+<p align="center" ><img src="https://i.imgur.com/dEJcquZ.png" alt=""></p>
+
+
+
 ---
 
 ```
