@@ -89,7 +89,9 @@ function SaveDialog(props) {
   const [documentTitle, setDocumentTitle] = React.useState("");
   // const [publicDocument, setPublicDocument] = React.useState(false);
   const [currentDocumentInfo, setCurrentDocumentInfo] = React.useState(null);
-  const [idxCurrentDocumentInfo, setIDXCurrentDocumentInfo] = React.useState(null);
+  const [idxCurrentDocumentInfo, setIDXCurrentDocumentInfo] = React.useState(
+    null
+  );
   // const [lastCheckedTitle, setLastCheckedTitle] = React.useState(null);
   const [updateTimer, setUpdateTimer] = React.useState(null);
 
@@ -150,11 +152,7 @@ function SaveDialog(props) {
     let idx = getIDX();
     let idxFetching = isIDXFetching();
 
-    if (
-      saveType === "IDX_SCREEN" && 
-      idx !== null && 
-      !idxFetching
-    ) {
+    if (saveType === "IDX_SCREEN" && idx !== null && !idxFetching) {
       changeToIDXSavePage();
     }
 
@@ -263,11 +261,7 @@ function SaveDialog(props) {
 
   const connectToIDX = async () => {
     try {
-      await openIDX(
-        web3Connect.address,
-        web3Connect.provider,
-        setIDXStatus
-      );
+      await openIDX(web3Connect.address, web3Connect.provider, setIDXStatus);
 
       let savedTitle = localStorage.getItem(STORAGE_IDX_DOCUMENT);
       setDocumentTitle(savedTitle ? savedTitle : "");
@@ -286,14 +280,11 @@ function SaveDialog(props) {
         setThreeBoxStatus
       );
 
-
       let savedTitle = localStorage.getItem(STORAGE_3BOX_DOCUMENT);
       setDocumentTitle(savedTitle ? savedTitle : "");
 
-
       let documentInfo = await getDocumentInfo(space, savedTitle);
       setCurrentDocumentInfo(documentInfo.metadata ? documentInfo : null);
-
 
       setSaveType("3BOX_SAVE");
     } catch (error) {
@@ -454,7 +445,7 @@ function SaveDialog(props) {
                     let space = getSpace();
                     if (box && space) {
                       console.log("3BOX is already open and available");
-                      changeTo3BoxSavePage();	
+                      changeTo3BoxSavePage();
                     }
                   }}
                   startIcon={<ThreeBoxIcon />}
@@ -476,9 +467,7 @@ function SaveDialog(props) {
                     }
                     let fetching = isIDXFetching();
                     if (fetching) {
-                      setIDXStatus(
-                        "Connection to IDX already in progress"
-                      );
+                      setIDXStatus("Connection to IDX already in progress");
                       let checkCompletion = () => {
                         let fetchingIDX = isIDXFetching();
                         if (!fetchingIDX) {
@@ -632,14 +621,14 @@ function SaveDialog(props) {
             )}
             {idxConnectionStep === 1 && (
               <div>
-                {web3Connect.address !== null && (
+                {/* {web3Connect.address !== null && (
                   <ProfileHover
                     address={web3Connect.address}
                     showName={true}
                     orientation="bottom"
                     displayFull={true}
                   />
-                )}
+                )} */}
                 <div>
                   <Button
                     variant="contained"
@@ -809,19 +798,19 @@ function SaveDialog(props) {
                   await generatePrivateKey(
                     web3Connect.address,
                     web3Connect.provider
-                    );
-                    await saveDocumentIDX(documentTitle, compressed, screenshot);
-                    const documentInfo = {
-                      data: compressed,
-                      timestamp: moment().unix()
-                    }
-                    setIDXCurrentDocumentInfo(documentInfo)
-                    localStorage.setItem(STORAGE_IDX_DOCUMENT, documentTitle);
-                    setSaving(false);
-                  } catch (err) {
-                    console.error("Error from IDX", err);
-                    setSaving(false);
-                  }
+                  );
+                  await saveDocumentIDX(documentTitle, compressed, screenshot);
+                  const documentInfo = {
+                    data: compressed,
+                    timestamp: moment().unix(),
+                  };
+                  setIDXCurrentDocumentInfo(documentInfo);
+                  localStorage.setItem(STORAGE_IDX_DOCUMENT, documentTitle);
+                  setSaving(false);
+                } catch (err) {
+                  console.error("Error from IDX", err);
+                  setSaving(false);
+                }
               }}
               style={{ margin: 16 }}
               disabled={

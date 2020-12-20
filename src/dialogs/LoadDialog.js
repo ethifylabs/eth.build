@@ -90,17 +90,12 @@ function LoadDialog(props) {
     console.log({
       isLoggedIn: web3Connect.address
         ? Box.isLoggedIn(web3Connect.address)
-        : "n/a"
+        : "n/a",
     });
     let space = getSpace();
     let box = getBox();
     let fetching = is3BoxFetching();
-    if (
-      web3Connect.address &&
-      !box &&
-      !space &&
-      !fetching
-    ) {
+    if (web3Connect.address && !box && !space && !fetching) {
       console.log("OPENING 3BOX from useEffect");
       open3Box(web3Connect.address, web3Connect.provider, console.log);
     }
@@ -120,8 +115,8 @@ function LoadDialog(props) {
 
     if (
       loadType === "3BOX_SCREEN" &&
-      box !== null &&	
-      space !== null &&	
+      box !== null &&
+      space !== null &&
       !threeBoxFetching
     ) {
       changeTo3BoxLoadPage();
@@ -129,7 +124,6 @@ function LoadDialog(props) {
   }, [loadType]);
 
   const changeToIDXLoadPage = async () => {
-
     setDocuments(await getSavedDocuments());
     setLoadType("IDX_LOAD");
   };
@@ -143,11 +137,7 @@ function LoadDialog(props) {
 
   const connectToIDX = async () => {
     try {
-      await openIDX(
-        web3Connect.address,
-        web3Connect.provider,
-        setIDXStatus
-      );
+      await openIDX(web3Connect.address, web3Connect.provider, setIDXStatus);
       setDocuments(await getSavedDocuments());
       setLoadType("IDX_LOAD");
     } catch (error) {
@@ -347,8 +337,7 @@ function LoadDialog(props) {
                         setTimeout(checkCompletion, 1000);
                       }
                       let box = getBox();
-                      let space = getSpace();	
-
+                      let space = getSpace();
 
                       if (box && space) {
                         console.log("3BOX is already open and available");
@@ -378,9 +367,7 @@ function LoadDialog(props) {
                       }
                       let fetching = isIDXFetching();
                       if (fetching) {
-                        setIDXStatus(
-                          "Connection to IDX already in progress"
-                        );
+                        setIDXStatus("Connection to IDX already in progress");
                         let checkCompletion = () => {
                           let fetchingIDX = isIDXFetching();
                           if (!fetchingIDX) {
@@ -443,14 +430,14 @@ function LoadDialog(props) {
               )}
               {idxConnectionStep === 1 && (
                 <div>
-                  {web3Connect.address !== null && (
+                  {/* {web3Connect.address !== null && (
                     <ProfileHover
                       address={web3Connect.address}
                       showName={true}
                       orientation="bottom"
                       displayFull={true}
                     />
-                  )}
+                  )} */}
                   <div>
                     <Button
                       variant="contained"
